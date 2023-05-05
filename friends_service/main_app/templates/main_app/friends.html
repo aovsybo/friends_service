@@ -1,0 +1,16 @@
+{% extends 'main_app/base.html '%}
+
+{% block title %}
+Friends
+{% endblock %}
+
+{% block body %}
+    <a href="{% url 'main' %}">Home</a>
+    <h1>Current friends are:</h1>
+    <ul>
+        {% for user in users %}
+        <li>{{ user.username }}</li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}
