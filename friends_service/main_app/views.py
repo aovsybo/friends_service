@@ -10,7 +10,6 @@ from .models import FriendRequest, User
 def get_friends_list(request):
     friends = request.user.friends.all()
     return render(request, 'main_app/friends.html', {"friends": friends})
-    pass
 
 
 def get_users_list(request):
@@ -34,6 +33,17 @@ def remove_friend(request, user_id):
 def send_request(request, user_id):
     from_user = request.user
     to_user = User.objects.get(id=user_id)
+    if FriendRequest.objects.filter(
+        from_user=to_user,
+        to_user=from_user
+    ).exists():
+        prev_friend_request = FriendRequest.objects.get(
+            from_user=to_user,
+            to_user=from_user
+        )
+        add_friends_to_each_other(prev_friend_request)
+        messages.success(request, 'Friendship accepted')
+        return redirect('friends')
     friend_request, is_created = FriendRequest.objects.get_or_create(
         from_user=from_user,
         to_user=to_user
@@ -46,12 +56,16 @@ def send_request(request, user_id):
         return redirect('main')
 
 
+def add_friends_to_each_other(friend_request):
+    friend_request.to_user.friends.add(friend_request.from_user)
+    friend_request.from_user.friends.add(friend_request.to_user)
+    friend_request.delete()
+
+
 def accept_request(request, request_id):
     friend_request = FriendRequest.objects.get(id=request_id)
     if friend_request.to_user == request.user:
-        friend_request.to_user.friends.add(friend_request.from_user)
-        friend_request.from_user.friends.add(friend_request.to_user)
-        friend_request.delete()
+        add_friends_to_each_other(friend_request)
         messages.success(request, 'Friendship accepted')
         return redirect('friends')
 

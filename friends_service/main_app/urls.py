@@ -11,6 +11,7 @@ urlpatterns = [
     path('requests', views.get_requests, name="requests"),
     path('remove_friend/<int:user_id>', views.remove_friend, name="remove_friend"),
     path('send_request/<int:user_id>', views.send_request, name="send_request"),
+    path('get_status/<int:user_id>', views.get_status, name="get_status"),
     path('accept_request/<int:request_id>', views.accept_request, name="accept_request"),
     path('decline_request/<int:request_id>', views.decline_request, name="decline_request"),
     path('sign_in', views.sign_in, name='sign_in'),
