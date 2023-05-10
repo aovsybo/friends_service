@@ -1,19 +1,21 @@
 {% extends 'main_app/base.html '%}
 
 {% block title %}
-Friends
+Users
 {% endblock %}
 
 {% block body %}
-    <h1>Current friends are:</h1>
+    <h1>List of users:</h1>
     {%if request.user.is_authenticated %}
         <ul>
-            {% for friend in friends %}
-            {% if not user.is_superuser %}
+            {% for user in users %}
+            {% if not user.is_superuser and request.user != user %}
+            {% if user not in request.user.friends.all %}
             <li>
-                {{ friend }}
-                <a href="/remove_friend/{{friend.id}}">remove</a>
+                {{ user }}
+                <a href="/send_request/{{user.id}}">add friend</a>
             </li>
+            {%endif%}
             {%endif%}
             {% endfor %}
         </ul>

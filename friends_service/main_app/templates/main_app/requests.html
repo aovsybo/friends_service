@@ -1,0 +1,31 @@
+{% extends 'main_app/base.html '%}
+
+{% block title %}
+Requests
+{% endblock %}
+
+{% block body %}
+    <h1>Requests</h1>
+        <h3>outcoming:</h3>
+        <ul>
+            {% for friend_request in friend_requests %}
+            {%if friend_request.from_user == request.user %}
+            <li>
+                Запрос к {{ friend_request.to_user }}
+            </li>
+            {%endif%}
+            {%endfor%}
+        </ul>
+        <h3>incoming:</h3>
+        <ul>
+            {% for friend_request in friend_requests %}
+            {% if friend_request.to_user == request.user %}
+            <li>
+                Запрос от {{ friend_request.from_user }}
+                <a href="/accept_request/{{friend_request.id}}">accept</a>
+                <a href="/decline_request/{{friend_request.id}}">decline</a>
+            </li>
+            {%endif%}
+            {%endfor%}
+        </ul>
+{% endblock %}

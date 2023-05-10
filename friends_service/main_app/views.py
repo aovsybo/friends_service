@@ -1,15 +1,67 @@
 from django.shortcuts import render,  redirect
 from django.contrib import messages
-from django.contrib.auth import login, authenticate, logout, get_user_model
-from django.contrib.auth.models import User
+from django.contrib.auth import login, authenticate, logout
+# from django.contrib.auth.models import User
 
 from .forms import LoginForm, RegisterForm
+from .models import FriendRequest, User
 
 
 def get_friends_list(request):
-    # TODO: get friends, not users
-    friends = User.objects.all()
+    friends = request.user.friends.all()
     return render(request, 'main_app/friends.html', {"friends": friends})
+    pass
+
+
+def get_users_list(request):
+    users = User.objects.all()
+    return render(request, 'main_app/users.html', {"users": users})
+
+
+def get_requests(request):
+    friend_requests = FriendRequest.objects.all()
+    return render(request, 'main_app/requests.html', {"friend_requests": friend_requests})
+
+
+def remove_friend(request, user_id):
+    friend = User.objects.get(id=user_id)
+    request.user.friends.remove(friend)
+    friend.friends.remove(request.user)
+    messages.success(request, 'Friend deleted')
+    return redirect('friends')
+
+
+def send_request(request, user_id):
+    from_user = request.user
+    to_user = User.objects.get(id=user_id)
+    friend_request, is_created = FriendRequest.objects.get_or_create(
+        from_user=from_user,
+        to_user=to_user
+    )
+    if is_created:
+        messages.success(request, 'Request sent')
+        return redirect('main')
+    else:
+        messages.success(request, 'Request already exists')
+        return redirect('main')
+
+
+def accept_request(request, request_id):
+    friend_request = FriendRequest.objects.get(id=request_id)
+    if friend_request.to_user == request.user:
+        friend_request.to_user.friends.add(friend_request.from_user)
+        friend_request.from_user.friends.add(friend_request.to_user)
+        friend_request.delete()
+        messages.success(request, 'Friendship accepted')
+        return redirect('friends')
+
+
+def decline_request(request, request_id):
+    friend_request = FriendRequest.objects.get(id=request_id)
+    if friend_request.to_user == request.user:
+        friend_request.delete()
+        messages.success(request, 'Friendship declined')
+        return redirect('friends')
 
 
 def show_start_page(request):
