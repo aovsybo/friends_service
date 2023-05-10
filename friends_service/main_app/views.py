@@ -1,13 +1,15 @@
 from django.shortcuts import render,  redirect
 from django.contrib import messages
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, authenticate, logout, get_user_model
+from django.contrib.auth.models import User
+
 from .forms import LoginForm, RegisterForm
-from .models import User
 
 
 def get_friends_list(request):
-    users = User.objects.all()
-    return render(request, 'main_app/friends.html', {"users": users})
+    # TODO: get friends, not users
+    friends = User.objects.all()
+    return render(request, 'main_app/friends.html', {"friends": friends})
 
 
 def show_start_page(request):

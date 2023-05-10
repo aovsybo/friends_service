@@ -1,12 +1,15 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
-class User(models.Model):
-    username = models.CharField('Название', max_length=50)
+class User(AbstractUser):
+    username = models.CharField("username", max_length=255, unique=True)
+    friends = models.ManyToManyField("User", blank=True)
 
-    def __str__(self):
-        return self.username
+    # class Meta():
+    #     verbose_name = 'Пользователь'
+    #     verbose_name_plural = 'Пользователи'
 
-    class Meta():
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
+
+# class FriendRequest(models.Model):
+#     request = models.ManyToManyField()

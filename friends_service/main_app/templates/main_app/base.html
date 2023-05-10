@@ -11,6 +11,9 @@
         {%if request.user.is_authenticated %}
             <span>Hi {{ request.user.username | title }}</span>
             <a href="{% url 'sign_out' %}">Sign out</a>
+            {%if request.user.is_superuser %}
+                <a href="{% url 'admin:index' %}">admin</a>
+            {% endif %}
         {% else %}
             <a href="{% url 'sign_in' %}">Sign in</a>
   			<a href="{% url 'sign_up' %}">Sign up</a>
