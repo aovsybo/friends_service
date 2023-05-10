@@ -12,9 +12,9 @@ def get_friends_list(request):
     return render(request, 'main_app/friends.html', {"friends": friends})
 
 
-def get_users_list(request):
+def find_friends(request):
     users = User.objects.all()
-    return render(request, 'main_app/users.html', {"users": users})
+    return render(request, 'main_app/find_friends.html', {"users": users})
 
 
 def get_requests(request):
@@ -60,6 +60,32 @@ def add_friends_to_each_other(friend_request):
     friend_request.to_user.friends.add(friend_request.from_user)
     friend_request.from_user.friends.add(friend_request.to_user)
     friend_request.delete()
+
+
+def get_users(request):
+    users = User.objects.all()
+    return render(request, 'main_app/users.html', {"users": users, "status": ""})
+
+
+def get_status(request, user_id):
+    current_user = request.user
+    checking_user = User.objects.get(id=user_id)
+
+    if checking_user in current_user.friends.all():
+        status = f"You are friends with {checking_user}"
+    elif FriendRequest.objects.filter(
+            from_user=current_user,
+            to_user=checking_user
+    ).exists():
+        status = f"You sent friend request to {checking_user}"
+    elif FriendRequest.objects.filter(
+            from_user=checking_user,
+            to_user=current_user
+    ).exists():
+        status = f"{checking_user} sent friend request to you"
+    else:
+        status = f"You are not friends with {checking_user}"
+    return render(request, 'main_app/users.html', {"status": status})
 
 
 def accept_request(request, request_id):

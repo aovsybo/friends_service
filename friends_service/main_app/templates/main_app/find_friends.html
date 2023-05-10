@@ -1,23 +1,24 @@
 {% extends 'main_app/base.html '%}
 
 {% block title %}
-Status
+Users
 {% endblock %}
 
 {% block body %}
-    <h1>Users:</h1>
+    <h1>Available friends:</h1>
     {%if request.user.is_authenticated %}
         <ul>
             {% for user in users %}
-            {% if not user.is_superuser %}
+            {% if not user.is_superuser and request.user != user %}
+            {% if user not in request.user.friends.all %}
             <li>
                 {{ user }}
-                <a href="/get_status/{{user.id}}">check status</a>
+                <a href="/send_request/{{user.id}}">add friend</a>
             </li>
+            {%endif%}
             {%endif%}
             {% endfor %}
         </ul>
-        {{status}}
     {% else %}
         <h2>You need to sign in</h2>
     {%endif%}

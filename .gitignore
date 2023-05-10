@@ -1,4 +1,5 @@
 /venv
+friends_service/.env
 
 # Django #
 *.log
