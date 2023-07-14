@@ -1,15 +1,42 @@
+from typing import Literal
+
 from django.shortcuts import render,  redirect
 from django.contrib import messages
-from django.contrib.auth import login, authenticate, logout
-# from django.contrib.auth.models import User
+from django.db import transaction
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
-from .forms import LoginForm, RegisterForm
-from .models import FriendRequest, User
+from .serializers import *
 
 
-def get_friends_list(request):
-    friends = request.user.friends.all()
-    return render(request, 'main_app/friends.html', {"friends": friends})
+class FriendsListView(generics.ListAPIView):
+    serializer_class = FriendsListSerializer
+    queryset = User.objects.all()
+
+
+class RequestsListView(generics.ListAPIView):
+    serializer_class = FriendsListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        type_: Literal['incoming'] | Literal['outcoming'] | None = self.kwargs.get('type_')
+        if type_ == 'outcoming':
+            return user.outcoming_requests.all()
+        if type_ == 'incoming':
+            return user.incoming_requests.all()
+        return user.incoming_requests.all() | \
+               user.outcoming_requests.all()
+
+
+class SendRequestAPIView(generics.CreateAPIView):
+    queryset = FriendRequest.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = SendRequestSerializer
+
+    def post(self, request):
+        super().create(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 def find_friends(request):
@@ -17,48 +44,15 @@ def find_friends(request):
     return render(request, 'main_app/find_friends.html', {"users": users})
 
 
-def get_requests(request):
-    friend_requests = FriendRequest.objects.all()
-    return render(request, 'main_app/requests.html', {"friend_requests": friend_requests})
-
-
 def remove_friend(request, user_id):
-    friend = User.objects.get(id=user_id)
-    request.user.friends.remove(friend)
-    friend.friends.remove(request.user)
+    request.user.friends.remove(user_id)
     messages.success(request, 'Friend deleted')
     return redirect('friends')
 
 
-def send_request(request, user_id):
-    from_user = request.user
-    to_user = User.objects.get(id=user_id)
-    if FriendRequest.objects.filter(
-        from_user=to_user,
-        to_user=from_user
-    ).exists():
-        prev_friend_request = FriendRequest.objects.get(
-            from_user=to_user,
-            to_user=from_user
-        )
-        add_friends_to_each_other(prev_friend_request)
-        messages.success(request, 'Friendship accepted')
-        return redirect('friends')
-    friend_request, is_created = FriendRequest.objects.get_or_create(
-        from_user=from_user,
-        to_user=to_user
-    )
-    if is_created:
-        messages.success(request, 'Request sent')
-        return redirect('main')
-    else:
-        messages.success(request, 'Request already exists')
-        return redirect('main')
-
-
+@transaction.atomic
 def add_friends_to_each_other(friend_request):
     friend_request.to_user.friends.add(friend_request.from_user)
-    friend_request.from_user.friends.add(friend_request.to_user)
     friend_request.delete()
 
 
@@ -70,8 +64,16 @@ def get_users(request):
 def get_status(request, user_id):
     current_user = request.user
     checking_user = User.objects.get(id=user_id)
-
-    if checking_user in current_user.friends.all():
+    # request_status = FriendRequest.objects.filter(
+    #     Q(from_user_id=request.user.id, to_user_id=user_id) |
+    #     Q(from_user_id=user_id, to_user_id=request.user.id) |
+    #     Q(is_approved=True)
+    # )
+    # is_approved - friends
+    # user == from_user - 1
+    # user == to_user - 2
+    # else - 3
+    if current_user.friends.contains(checking_user):
         status = f"You are friends with {checking_user}"
     elif FriendRequest.objects.filter(
             from_user=current_user,
@@ -89,6 +91,8 @@ def get_status(request, user_id):
 
 
 def accept_request(request, request_id):
+    # TODO:
+    #  get_object_or_404 - drf
     friend_request = FriendRequest.objects.get(id=request_id)
     if friend_request.to_user == request.user:
         add_friends_to_each_other(friend_request)
@@ -106,48 +110,3 @@ def decline_request(request, request_id):
 
 def show_start_page(request):
     return render(request, 'main_app/index.html')
-
-
-def sign_in(request):
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            user = authenticate(
-                username=cd["username"],
-                password=cd["password"]
-            )
-            if user is not None:
-                if user.is_active:
-                    login(request, user)
-                    messages.success(request, 'Signed in')
-                    return redirect('main')
-                else:
-                    messages.success(request, 'Disabled account')
-            else:
-                messages.success(request, 'Invalid login')
-    else:
-        form = LoginForm(request.POST)
-    return render(request, 'main_app/sign_in.html', {'form': form})
-
-
-def sign_out(request):
-    logout(request)
-    return redirect('main')
-
-
-def sign_up(request):
-    if request.method == 'GET':
-        form = RegisterForm()
-        return render(request, 'main_app/sign_up.html', {'form': form})
-    elif request.method == 'POST':
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.username = user.username.lower()
-            user.save()
-            messages.success(request, 'Signed up')
-            login(request, user)
-            return redirect('main')
-        else:
-            return render(request, 'main_app/sign_up.html', {'form': form})
